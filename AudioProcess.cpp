@@ -7,4 +7,4 @@
 JNIEXPORT void JNICALL Java_AudioProcessor_sinewave(JNIEnv *env, jobject thisObj) {
    printf("Hello World!\n");
    return;
-}
+} 
