@@ -1,8 +1,7 @@
-#include <jni.h>        // JNI header provided by JDK
-#include <stdio.h>      // C Standard IO Header
+#include <stdio.h>
 #include <math.h>
-#include "AudioProcessor.h"   // Generated
 #include "portaudio/portaudio.h"
+
 #define NUM_SECONDS   (5)
 #define SAMPLE_RATE   (44100)
 #define FRAMES_PER_BUFFER  (64)
@@ -60,14 +59,12 @@ static void StreamFinished( void* userData )
    paTestData *data = (paTestData *) userData;
    printf( "Stream Completed: %s\n", data->message );
 }
-//compile command
-//
 
-//i686-w64-mingw32-gcc -I "C:\Program Files\Java\jdk1.8.0_181\include" -I"C:\Program Files\Java\jdk1.8.0_181\include\win32" -shared -o AudioProcessor.dll AudioProcessor.cpp
-//x86_64-w64-mingw32-gcc -I "C:\Program Files\Java\jdk1.8.0_181\include" -I"C:\Program Files\Java\jdk1.8.0_181\include\win32" -shared -o AudioProcessor.dll AudioProcessor.c
-// Implementation of the native method sayHello()
-JNIEXPORT void JNICALL Java_AudioProcessor_sinewave(JNIEnv *env, jobject thisObj) {
-  PaStreamParameters outputParameters;
+/*******************************************************************/
+int main(void);
+int main(void)
+{
+    PaStreamParameters outputParameters;
     PaStream *stream;
     PaError err;
     paTestData data;
@@ -125,15 +122,11 @@ JNIEXPORT void JNICALL Java_AudioProcessor_sinewave(JNIEnv *env, jobject thisObj
     Pa_Terminate();
     printf("Test finished.\n");
     
-   
+    return err;
 error:
     Pa_Terminate();
     fprintf( stderr, "An error occured while using the portaudio stream\n" );
     fprintf( stderr, "Error number: %d\n", err );
     fprintf( stderr, "Error message: %s\n", Pa_GetErrorText( err ) );
-	
-    //printf("Test finished.\n");
-    
-  
-   return;
-} 
+    return err;
+}

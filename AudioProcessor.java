@@ -12,12 +12,12 @@ public class AudioProcessor {  // Save as HelloJNI.java
  
    // Test Driver
    public static void main(String[] args) {
-		new AudioProcessor().sinewave();  // Create an instance and invoke the native method
-	   /*JFrame frame = new JFrame("Audio Processor");
+	   new AudioProcessor().sinewave();  // Create an instance and invoke the native method
+	   JFrame frame = new JFrame("Audio Processor");
        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
        frame.setSize(400,400);
        JButton button = new JButton("Press");
        frame.getContentPane().add(button); // Adds Button to content pane of frame
-       frame.setVisible(true);*/
+       frame.setVisible(true);
    }
 }
