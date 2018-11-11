@@ -12,6 +12,13 @@
 #endif
 
 #define TABLE_SIZE   (200)
+
+
+PaStreamParameters outputParameters;
+PaStream *stream;
+PaError err;
+paTestData data;
+
 typedef struct
 {
     float sine[TABLE_SIZE];
@@ -63,14 +70,11 @@ static void StreamFinished( void* userData )
 //compile command
 //
 
-//i686-w64-mingw32-gcc -I "C:\Program Files\Java\jdk1.8.0_181\include" -I"C:\Program Files\Java\jdk1.8.0_181\include\win32" -shared -o AudioProcessor.dll AudioProcessor.cpp
+//i686-w64-mingw32-gcc -I "C:\Program Files\Java\jdk1.8.0_181\include" -I"C:\Program Files\Java\jdk1.8.0_181\include\win32" -shared -o AudioProcessor.dll AudioProcessor.c -I "portaudio" -L "lib/.libs"  -Wl,--add-stdcall-alias
 //x86_64-w64-mingw32-gcc -I "C:\Program Files\Java\jdk1.8.0_181\include" -I"C:\Program Files\Java\jdk1.8.0_181\include\win32" -shared -o AudioProcessor.dll AudioProcessor.c
 // Implementation of the native method sayHello()
 JNIEXPORT void JNICALL Java_AudioProcessor_sinewave(JNIEnv *env, jobject thisObj) {
-  PaStreamParameters outputParameters;
-    PaStream *stream;
-    PaError err;
-    paTestData data;
+
     int i;
 
     printf("PortAudio Test: output sine wave. SR = %d, BufSize = %d\n", SAMPLE_RATE, FRAMES_PER_BUFFER);
