@@ -18,8 +18,10 @@ public class AudioProcessor extends Application {
    }
  
  
-   private native void sinewave();
- 
+   //private static AudioProcessor Au;
+   private native void AudioStart();
+   private native void Volume(double min, double max);
+   
 
    public static void main(String[] args) {
 	    
@@ -37,7 +39,7 @@ public class AudioProcessor extends Application {
 	   
 	    Thread t2 = new Thread(new Runnable(){
 			public void run(){
-				//Au.audio();
+				Au.audio();
 			}
 	   });
 	   
@@ -50,7 +52,7 @@ public class AudioProcessor extends Application {
 	   }catch(InterruptedException e){
 		   e.printStackTrace();
 	   }
-	 
+	
    }
    
    
@@ -60,22 +62,22 @@ public class AudioProcessor extends Application {
    }
    
    public synchronized void audio(){
-	   new AudioProcessor().sinewave();
+	   //new AudioProcessor().AudioStart();
 		
    }
    
    @Override
    public void start(Stage stage) throws Exception {
 	    
-      Label label = new Label("Gain:");
+      Label label = new Label("Volume:");
  
       Label infoLabel = new Label("-");
       infoLabel.setTextFill(Color.BLUE);
  
       Slider slider = new Slider();
  
-      slider.setMin(0);
-      slider.setMax(100);
+      slider.setMin(0.0);
+      slider.setMax(1.0);
       slider.setValue(80);
  
       slider.setShowTickLabels(true);
@@ -87,11 +89,11 @@ public class AudioProcessor extends Application {
       slider.valueProperty().addListener(new ChangeListener<Number>() {
  
          @Override
-         public void changed(ObservableValue<? extends Number> observable, //
-               Number oldValue, Number newValue) {
- 
-            infoLabel.setText("Gain: " + newValue);
-         }
+         public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+			  AudioProcessor Au = new AudioProcessor();
+		       infoLabel.setText("Volume: " + newValue);
+			   Au.Volume(0.0,(double) newValue);
+		 }
       });
  
       VBox root = new VBox();

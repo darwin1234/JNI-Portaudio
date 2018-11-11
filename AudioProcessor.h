@@ -12,8 +12,11 @@ extern "C" {
  * Method:    sinewave
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_AudioProcessor_sinewave
+JNIEXPORT void JNICALL Java_AudioProcessor_AudioStart
   (JNIEnv *, jobject);
+
+JNIEXPORT void JNICALL Java_AudioProcessor_Volume
+  (JNIEnv* env, jobject this_obj, jdouble min, jdouble max);  
 
 #ifdef __cplusplus
 }

@@ -3,91 +3,105 @@
 #include <math.h>
 #include "AudioProcessor.h"   // Generated
 #include "portaudio/portaudio.h"
-#define NUM_SECONDS   (5)
-#define SAMPLE_RATE   (44100)
-#define FRAMES_PER_BUFFER  (64)
-
-#ifndef M_PI
-#define M_PI  (3.14159265)
-#endif
-
-#define TABLE_SIZE   (200)
 
 
-PaStreamParameters outputParameters;
-PaStream *stream;
-PaError err;
-paTestData data;
+#define SAMPLE_RATE         (44100)
+#define PA_SAMPLE_TYPE      paFloat32
+#define FRAMES_PER_BUFFER   (64)
 
-typedef struct
+/*****CONTROLS****/
+
+double Cmin,Cmax;
+
+
+typedef float SAMPLE;
+
+float CubicAmplifier( float input );
+static int AudioCallBack( const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags, void *userData );
+
+/* Non-linear amplifier with soft distortion curve. */
+float CubicAmplifier( float input )
 {
-    float sine[TABLE_SIZE];
-    int left_phase;
-    int right_phase;
-    char message[20];
+    float output, temp;
+    if( input < 0.0 )
+    {
+        //temp = input + 1.0f;
+        output = 0.0;
+    }
+    else
+    {
+        //temp = input - 1.0f;
+	   
+       output = input * Cmax;
+    }
+
+    return output;
 }
-paTestData;
+#define ProcessAudio(x) CubicAmplifier(x)
 
-/* This routine will be called by the PortAudio engine when audio is needed.
-** It may called at interrupt level on some machines so don't do anything
-** that could mess up the system like calling malloc() or free().
-*/
-static int patestCallback( const void *inputBuffer, void *outputBuffer,
-                            unsigned long framesPerBuffer,
-                            const PaStreamCallbackTimeInfo* timeInfo,
-                            PaStreamCallbackFlags statusFlags,
-                            void *userData )
+static int gNumNoInputs = 0;
+
+
+
+
+
+static int AudioCallBack( const void *inputBuffer, void *outputBuffer,
+                         unsigned long framesPerBuffer,
+                         const PaStreamCallbackTimeInfo* timeInfo,
+                         PaStreamCallbackFlags statusFlags,
+                         void *userData )
 {
-    paTestData *data = (paTestData*)userData;
-    float *out = (float*)outputBuffer;
-    unsigned long i;
-
+    SAMPLE *out = (SAMPLE*)outputBuffer;
+    const SAMPLE *in = (const SAMPLE*)inputBuffer;
+    unsigned int i;
     (void) timeInfo; /* Prevent unused variable warnings. */
     (void) statusFlags;
-    (void) inputBuffer;
-    
-    for( i=0; i<framesPerBuffer; i++ )
+    (void) userData;
+
+    if( inputBuffer == NULL )
     {
-        *out++ = data->sine[data->left_phase];  /* left */
-        *out++ = data->sine[data->right_phase];  /* right */
-        data->left_phase += 1;
-        if( data->left_phase >= TABLE_SIZE ) data->left_phase -= TABLE_SIZE;
-        data->right_phase += 3; /* higher pitch so we can distinguish left and right. */
-        if( data->right_phase >= TABLE_SIZE ) data->right_phase -= TABLE_SIZE;
+        for( i=0; i<framesPerBuffer; i++ )
+        {
+            *out++ = 0;  /* left - silent */
+            *out++ = 0;  /* right - silent */
+        }
+        gNumNoInputs += 1;
+    }
+    else
+    {
+        for( i=0; i<framesPerBuffer; i++ )
+        {
+            *out++ = ProcessAudio(*in++);  /* left - distorted */
+            *out++ = ProcessAudio(*in++);          /* right - clean */
+        }
     }
     
     return paContinue;
 }
 
-/*
- * This routine is called by portaudio when playback is done.
- */
-static void StreamFinished( void* userData )
-{
-   paTestData *data = (paTestData *) userData;
-   printf( "Stream Completed: %s\n", data->message );
-}
-//compile command
-//
 
-//i686-w64-mingw32-gcc -I "C:\Program Files\Java\jdk1.8.0_181\include" -I"C:\Program Files\Java\jdk1.8.0_181\include\win32" -shared -o AudioProcessor.dll AudioProcessor.c -I "portaudio" -L "lib/.libs"  -Wl,--add-stdcall-alias
+//i686-w64-mingw32-gcc -I "C:\Program Files\Java\jdk1.8.0_181\include" -I"C:\Program Files\Java\jdk1.8.0_181\include\win32" -shared -o AudioProcessor.dll AudioProcessor.c -I "portaudio" -L "lib/.libs"  -Wl,--add-stdcall-alias -lportaudio32bit
 //x86_64-w64-mingw32-gcc -I "C:\Program Files\Java\jdk1.8.0_181\include" -I"C:\Program Files\Java\jdk1.8.0_181\include\win32" -shared -o AudioProcessor.dll AudioProcessor.c
-// Implementation of the native method sayHello()
-JNIEXPORT void JNICALL Java_AudioProcessor_sinewave(JNIEnv *env, jobject thisObj) {
 
-    int i;
 
-    printf("PortAudio Test: output sine wave. SR = %d, BufSize = %d\n", SAMPLE_RATE, FRAMES_PER_BUFFER);
 
-    /* initialise sinusoidal wavetable */
-    for( i=0; i<TABLE_SIZE; i++ )
-    {
-        data.sine[i] = (float) sin( ((double)i/(double)TABLE_SIZE) * M_PI * 2. );
-    }
-    data.left_phase = data.right_phase = 0;
-    
+JNIEXPORT void JNICALL Java_AudioProcessor_AudioStart(JNIEnv *env, jobject thisObj) {
+	PaStreamParameters inputParameters, outputParameters;
+    PaStream *stream;
+    PaError err;
+
     err = Pa_Initialize();
     if( err != paNoError ) goto error;
+
+    inputParameters.device = Pa_GetDefaultInputDevice(); /* default input device */
+    if (inputParameters.device == paNoDevice) {
+      fprintf(stderr,"Error: No default input device.\n");
+      goto error;
+    }
+    inputParameters.channelCount = 2;       /* stereo input */
+    inputParameters.sampleFormat = PA_SAMPLE_TYPE;
+    inputParameters.suggestedLatency = Pa_GetDeviceInfo( inputParameters.device )->defaultLowInputLatency;
+    inputParameters.hostApiSpecificStreamInfo = NULL;
 
     outputParameters.device = Pa_GetDefaultOutputDevice(); /* default output device */
     if (outputParameters.device == paNoDevice) {
@@ -95,49 +109,50 @@ JNIEXPORT void JNICALL Java_AudioProcessor_sinewave(JNIEnv *env, jobject thisObj
       goto error;
     }
     outputParameters.channelCount = 2;       /* stereo output */
-    outputParameters.sampleFormat = paFloat32; /* 32 bit floating point output */
+    outputParameters.sampleFormat = PA_SAMPLE_TYPE;
     outputParameters.suggestedLatency = Pa_GetDeviceInfo( outputParameters.device )->defaultLowOutputLatency;
     outputParameters.hostApiSpecificStreamInfo = NULL;
 
     err = Pa_OpenStream(
               &stream,
-              NULL, /* no input */
+              &inputParameters,
               &outputParameters,
               SAMPLE_RATE,
               FRAMES_PER_BUFFER,
-              paClipOff,      /* we won't output out of range samples so don't bother clipping them */
-              patestCallback,
-              &data );
-    if( err != paNoError ) goto error;
-
-    sprintf( data.message, "No Message" );
-    err = Pa_SetStreamFinishedCallback( stream, &StreamFinished );
+              0, /* paClipOff, */  /* we won't output out of range samples so don't bother clipping them */
+              AudioCallBack,
+              NULL );
     if( err != paNoError ) goto error;
 
     err = Pa_StartStream( stream );
     if( err != paNoError ) goto error;
 
-    printf("Play for %d seconds.\n", NUM_SECONDS );
-    Pa_Sleep( NUM_SECONDS * 1000 );
-
-    err = Pa_StopStream( stream );
-    if( err != paNoError ) goto error;
-
+    printf("Hit ENTER to stop program.\n");
+    getchar();
     err = Pa_CloseStream( stream );
     if( err != paNoError ) goto error;
 
+    printf("Finished. gNumNoInputs = %d\n", gNumNoInputs );
     Pa_Terminate();
-    printf("Test finished.\n");
-    
-   
+    return;
+
 error:
     Pa_Terminate();
     fprintf( stderr, "An error occured while using the portaudio stream\n" );
     fprintf( stderr, "Error number: %d\n", err );
     fprintf( stderr, "Error message: %s\n", Pa_GetErrorText( err ) );
+    return;
 	
-    //printf("Test finished.\n");
     
   
    return;
+}
+JNIEXPORT void JNICALL Java_AudioProcessor_Volume (JNIEnv* env, jobject this_obj, jdouble min, jdouble max){
+	Cmin = min;
+	Cmax = max;
+	
+	printf("%f MIN: ", min);
+	printf("\n");
+	printf("%f MAX: ", max);
+	return;
 } 
