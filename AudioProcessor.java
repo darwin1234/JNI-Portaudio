@@ -1,23 +1,69 @@
 import javax.swing.*;
+import javafx.application.Application;
+import javafx.stage.Stage;
 
-public class AudioProcessor {  // Save as HelloJNI.java
+
+
+public class AudioProcessor extends Application {  
    static {
-		System.loadLibrary("AudioProcessor"); // Load native library hello.dll (Windows) or libhello.so (Unixes)
-                                   //  at runtime
-                                   // This library contains a native method called sayHello()
+		System.loadLibrary("AudioProcessor"); 
+                                 
    }
  
-   // Declare an instance native method sayHello() which receives no parameter and returns void
+ 
    private native void sinewave();
  
-   // Test Driver
+
    public static void main(String[] args) {
-	   new AudioProcessor().sinewave();  // Create an instance and invoke the native method
-	   JFrame frame = new JFrame("Audio Processor");
-       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-       frame.setSize(400,400);
-       JButton button = new JButton("Press");
-       frame.getContentPane().add(button); // Adds Button to content pane of frame
-       frame.setVisible(true);
+	    
+		AudioProcessor Au = new AudioProcessor();
+		Au.ProcessApp();
+		
+		 Thread t1 = new Thread(new Runnable(){
+		   
+			public void run(){
+				 Application.launch(AudioProcessor.class, args);  // correct
+				
+			}
+	   });
+	   
+	   
+	    Thread t2 = new Thread(new Runnable(){
+			public void run(){
+				Au.audio();
+			}
+	   });
+	   
+	   t1.start();
+	   t2.start();
+	   
+	   try{
+		   t1.join();
+		   t2.join();
+	   }catch(InterruptedException e){
+		   e.printStackTrace();
+	   }
+	 
    }
-}
+   
+   
+   public void ProcessApp(){
+	  
+	   
+   }
+   
+   public synchronized void audio(){
+	   new AudioProcessor().sinewave();
+		
+   }
+   
+   @Override
+   public void start(Stage primaryStage) throws Exception {
+        primaryStage.setTitle("Audio Processor");
+        primaryStage.show();
+   }
+	
+ 
+
+   
+ }
